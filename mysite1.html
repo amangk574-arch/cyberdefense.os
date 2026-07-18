@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cyber OS v12.6 | Next-Level Vault Fixed</title>
+    <style>
+        :root { --neon: #00f2fe; --bg: #050508; --panel: #0a0a14; --text: #fff; --danger: #ff4757; --green: #00ff88; --discord: #5865F2; --gold: #ffd700; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; }
+
+        /* SECURITY GATEWAY */
+        #auth-layer { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .auth-panel { border: 1px solid var(--neon); padding: 40px; text-align: center; width: 400px; background: #0f0f1a; border-radius: 15px; box-shadow: 0 0 30px var(--neon); }
+
+        /* CORE GRID LAYOUT */
+        .os-core { height: 100vh; display: grid; grid-template-columns: 320px 1fr 300px; grid-template-rows: 50px 1fr 180px; gap: 3px; background: #111; padding: 3px; }
+        
+        .panel { background: var(--panel); border: 1px solid #222; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
+        .top-bar { grid-column: 1 / span 3; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: var(--panel); border-bottom: 1px solid #333; }
+        .sidebar-left { grid-row: 2 / span 2; gap: 15px; }
+        .sidebar-right { grid-row: 2 / span 2; gap: 15px; }
+        .main-workspace { grid-row: 2; gap: 15px; }
+        .term-panel { grid-row: 3; grid-column: 2; border: 1px solid #333; padding: 10px; font-size: 12px; color: var(--green); overflow-y: auto; background: #000; }
+
+        /* METRICS & MAP */
+        .monitor-box { border: 1px solid #333; padding: 10px; border-radius: 5px; background: #000; }
+        .bar-bg { height: 8px; background: #111; margin-top: 8px; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--neon); width: 0%; transition: width 0.5s ease; }
+        .map-container { border: 1px solid #333; background: #020205; height: 170px; position: relative; border-radius: 5px; overflow: hidden; }
+        #mapCanvas { width: 100%; height: 100%; display: block; }
+        .map-title { position: absolute; top: 5px; left: 10px; font-size: 10px; color: var(--danger); font-weight: bold; }
+
+        /* CONTROLS & UTILITIES */
+        .vault-controls { display: flex; gap: 10px; margin-bottom: 5px; flex-wrap: wrap; }
+        .cyber-btn { background: transparent; border: 1px solid var(--neon); color: var(--neon); padding: 8px 12px; cursor: pointer; font-family: monospace; font-weight: bold; border-radius: 4px; font-size: 12px; }
+        .cyber-btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 10px var(--neon); }
+        .cyber-btn.danger { border-color: var(--danger); color: var(--danger); }
+        .cyber-btn.danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 10px var(--danger); }
+        .cyber-btn.public-btn { border-color: var(--green); color: var(--green); }
+        .cyber-btn.public-btn:hover { background: var(--green); color: #000; box-shadow: 0 0 10px var(--green); }
+        
+        /* BREADCRUMB */
+        .path-bar { background: #000; padding: 8px; border: 1px solid #222; font-size: 12px; color: var(--neon); border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+
+        /* NOTEPAD MODAL ZONE */
+        .notepad-area { display: none; flex-direction: column; gap: 10px; border: 1px solid #333; padding: 15px; background: #000; border-radius: 5px; }
+        .cyber-input { background: #050508; border: 1px solid #333; color: #fff; padding: 10px; font-family: monospace; width: 100%; border-radius: 4px; }
+        .cyber-textarea { background: #050508; border: 1px solid #333; color: var(--green); padding: 10px; font-family: monospace; width: 100%; height: 120px; resize: none; border-radius: 4px; }
+
+        /* VIRTUAL EXPLORER GRID */
+        .explorer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
+        .explorer-item { border: 1px solid #222; background: #0d0d1a; padding: 12px; text-align: center; cursor: pointer; border-radius: 6px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; }
+        .explorer-item:hover { border-color: var(--neon); background: #121226; }
+        .item-icon { font-size: 28px; margin-bottom: 5px; }
+        .item-name { font-size: 11px; word-break: break-all; max-width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .shred-btn { position: absolute; top: 2px; right: 4px; color: var(--danger); font-size: 10px; font-weight: bold; display: none; }
+        .explorer-item:hover .shred-btn { display: block; }
+        
+        .zone-badge { padding: 4px 8px; font-size: 11px; font-weight: bold; border-radius: 3px; }
+        .badge-secret { background: var(--danger); color: #fff; }
+        .badge-public { background: var(--green); color: #000; }
+    </style>
+</head>
+<body>
+
+<!-- SECURITY AUTHENTICATION -->
+<div id="auth-layer">
+    <div class="auth-panel" id="dynamic-auth-box">
+        <h2 style="color:var(--neon); letter-spacing: 3px; margin-bottom: 10px;">CYBER ACCESS</h2>
+        <p style="font-size:11px; color:#666; margin-bottom: 20px;">CREATIVE SECURE MATRIX v12.6</p>
+        <input type="password" id="pin-field" placeholder="ENTER ACCESS PIN..." style="width:100%; padding:15px; margin-bottom:20px; background:transparent; border:1px solid #555; color:#fff; text-align:center; border-radius:4px;">
+        <button onclick="checkAccess()" style="width:100%; padding:15px; background:var(--neon); border:none; font-weight:bold; cursor:pointer; border-radius:4px; margin-bottom:10px;">DECRYPT SECRET WORLD</button>
+        <button onclick="switchToPublicMode()" style="width:100%; padding:10px; background:transparent; border:1px solid var(--green); color:var(--green); font-weight:bold; cursor:pointer; border-radius:4px;">🌐 GO TO PUBLIC PLACE</button>
+    </div>
+</div>
+
+<!-- OS INTERFACE CORE -->
+<div class="os-core" id="os-ui" style="display: none;">
+    <div class="top-bar">
+        <span>DYNAMIC_VAULT_OS v12.6 | Zone: <span id="current-zone-status" class="zone-badge badge-secret">SECRET MATRIX</span></span>
+        <span id="clock" style="color:var(--neon)">00:00:00</span>
+    </div>
+    
+    <!-- LEFT PANEL: TRACKING & TELEMETRY -->
+    <aside class="panel sidebar-left">
+        <h3 style="color:var(--neon)">LIVE TELEMETRY</h3>
+        <div class="monitor-box"><small>CPU CORE LOAD</small><div class="bar-bg"><div id="cpu-bar" class="bar-fill"></div></div></div>
+        <div class="monitor-box"><small>RAM SANDBOX BLOCK</small><div class="bar-bg"><div id="ram-bar" class="bar-fill"></div></div></div>
+        
+        <div class="map-container">
+            <div class="map-title">🔴 LIVE INTERCEPT MAP</div>
+            <canvas id="mapCanvas"></canvas>
+        </div>
+        <div id="packet-log" style="font-size:9px; color:#555; flex-grow:1; overflow-y:auto; border-top:1px solid #333; padding-top:5px;"></div>
+    </aside>
+
+    <!-- CENTER PANEL: THE VIRTUAL FILESYSTEM -->
+    <main class="panel main-workspace">
+        <h3 id="workspace-title" style="color:var(--neon)">📁 INTERNAL SECURE STORAGE ARCHIVE</h3>
+        
+        <!-- PATH TRACKER -->
+        <div class="path-bar" id="path-monitor">Location: Root/</div>
+
+        <!-- ACTION CONTROLS -->
+        <div class="vault-controls" id="secret-controls">
+            <button class="cyber-btn" onclick="triggerCreate('folder')">📁 New Folder</button>
+            <button class="cyber-btn" onclick="triggerCreate('file')">📄 New Secret File</button>
+            <button class="cyber-btn public-btn" onclick="generatePublicLink()">🔗 Copy Public Link</button>
+            <button class="cyber-btn danger" onclick="clearFullVault()">Shred Entire Vault</button>
+        </div>
+        
+        <div class="vault-controls" id="public-controls" style="display: none;">
+            <button class="cyber-btn danger" onclick="lockSystemAndGoBack()">🔒 Lock & Back to Secret World</button>
+            <span style="color:var(--green); font-size:12px; align-self:center;">[Viewing Mode: Public Guest Portfolio]</span>
+        </div>
+
+        <!-- HIDDEN NOTEPAD EDITOR / MODAL -->
+        <div class="notepad-area" id="notepad-zone">
+            <input type="text" id="note-title" class="cyber-input" placeholder="Enter name...">
+            <textarea id="note-content" class="cyber-textarea" placeholder="Type classified text data here..."></textarea>
+            <div style="display:flex; gap:10px;">
+                <button class="cyber-btn" id="save-vault-btn">🔒 Save Crypt Block</button>
+                <button class="cyber-btn danger" onclick="closeNotepad()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- VIRTUAL FILE EXPLORER INTERFACE -->
+        <div class="explorer-grid" id="explorer-display">
+            <!-- Folders and files map here dynamically -->
+        </div>
+    </main>
+
+    <!-- RIGHT PANEL: ACTIVE DEMONS -->
+    <aside class="panel sidebar-right">
+        <h3>SYSTEM STATUS</h3>
+        <div id="process-list" style="font-size:11px; margin-top:10px; line-height: 2.2; color:#aaa;">
+            <div>> Sandboxed_FS: <span style="color:var(--green)">ACTIVE</span></div>
+            <div>> Network_Tunnel: <span id="net-status" style="color:var(--green)">OFFLINE (ISOLATED)</span></div>
+            <div>> Zero_PC_Leakage: <span style="color:var(--green)">SECURE</span></div>
+            <div>> CyberCoin_Miner: <span id="miner-status" style="color:var(--danger)">OFFLINE</span></div>
+        </div>
+    </aside>
+
+    <!-- BOTTOM COMMAND LINE TERMINAL -->
+    <div class="term-panel" id="term">
+        <div>> System Virtual Substructure loaded. Connection bypassed completely.</div>
+        <div>> Type <span style="color:#fff;">matrix</span>, <span style="color:#fff;">crypto-mine</span>, <span style="color:#fff;">bypass-firewall</span>, or <span style="color:#fff;">minecraft-bench</span> for tools!</div>
+        <input type="text" id="cmd" style="width:100%; background:transparent; border:none; color:#fff; font-family:monospace; margin-top:5px;" placeholder="Enter Command Shell Execution..." autofocus>
+    </div>
+</div>
+
+<script>
+    // 🔑 SECURITY PIN
+    const SYSTEM_PIN = "amangkumar1122@"; 
+
+    // 🌐 PUBLIC PLACE: 10 HIGH QUALITY PROJECTS
+    const publicProjects = [
+        { id: 101, name: "01_Matrix_Grid_Calculator.py", content: "# ==========================================\n# 🚀 NEXT-LEVEL MATRIX CALCULATOR\n# ==========================================\ndef matrix_parse_and_calculate():\n    print(\"[SYSTEM] Initializing Arithmetic Parser...\")\n    operation = input(\"Select Grid Mode [+, -, *, /]: \")\n    num1 = float(input(\"Enter Matrix Node Alpha: \"))\n    num2 = float(input(\"Enter Matrix Node Beta: \"))\n    \n    if operation == '+': return num1 + num2\n    elif operation == '-': return num1 - num2\n    elif operation == '*': return num1 * num2\n    elif operation == '/': return num1 / num2 if num2 != 0 else \"Overflow Error\"\n\nprint(\"Result Matrix Value:\", matrix_parse_and_calculate())", type: 'file', date: "12/05/2026" },
+        { id: 102, name: "02_Persistent_Local_TaskTracker.html", content: "<!-- 📋 ULTIMATE PERSISTENT TO-DO WITH LOCALSTORAGE -->\n<div class='todo-wrapper'>\n    <input type='text' id='taskInput' placeholder='Inject active routine...'>\n    <button onclick='syncTask()'>Sync Node</button>\n</div>\n<script>\nfunction syncTask() {\n    let tasks = JSON.parse(localStorage.getItem('cyber_tasks') || '[]');\n    tasks.push({id: Date.now(), text: document.getElementById('taskInput').value});\n    localStorage.setItem('cyber_tasks', JSON.stringify(tasks));\n    console.log('[LOCAL REPO] Storage synchronized successfully.');\n}\n<\/script>", type: 'file', date: "15/05/2026" },
+        { id: 103, name: "03_Cryptographic_Password_Gen.js", content: "// 🔑 NEXT-LEVEL SECURE ALPHANUMERIC KEY GENERATOR\nfunction generateSecureToken(entropyLength = 16) {\n    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';\n    let token = '';\n    const cryptoObj = window.crypto || window.msCrypto;\n    if (cryptoObj) {\n        let values = new Uint32Array(entropyLength);\n        cryptoObj.getRandomValues(values);\n        for (let i = 0; i < entropyLength; i++) { token += charset[values[i] % charset.length]; }\n    } else {\n        for (let i = 0; i < entropyLength; i++) { token += charset.charAt(Math.floor(Math.random() * charset.length)); }\n    }\n    return `KEY_SIG_${token}`;\n}\nconsole.log(generateSecureToken(24));", type: 'file', date: "18/05/2026" },
+        { id: 104, name: "04_MultiUnit_DataConverter.cpp", content: "// 💾 MULTI-UNIT TRANSMISSION CONVERTER (C++)\n#include <iostream>\n#include <string>\nvoid computeStorageMetrics(double baselineValue, std::string unitType) {\n    if (unitType == \"GB\") {\n        std::cout << \"== TRANSMISSION DATA ==\\n\";\n        std::cout << \"Megabytes: \" << baselineValue * 1024 << \" MB\\n\";\n        std::cout << \"Kilobytes: \" << baselineValue * 1024 * 1024 << \" KB\\n\";\n    } else { std::cout << \"[ERR] Unrecognized storage standard allocation.\\n\"; }\n}\nint main() { computeStorageMetrics(16.5, \"GB\"); return 0; }", type: 'file', date: "22/05/2026" },
+        { id: 105, name: "05_Pattern_Predictor_RPS.py", content: "# 🎮 SMART ROCK-PAPER-SCISSORS WITH AI PATTERN MEMORY\nimport random\nsystem_memory = ['Rock', 'Paper', 'Scissors']\nuser_history = []\ndef analyze_user_and_play(user_move):\n    user_history.append(user_move)\n    if len(user_history) > 3 and user_history[-1] == user_history[-2]:\n        counter_move = 'Paper' if user_history[-1] == 'Rock' else 'Scissors'\n    else: counter_move = random.choice(system_memory)\n    print(f\"[AI LOG] Internal Predictive Strategy chose: {counter_move}\")\n    return counter_move\nanalyze_user_and_play('Rock')", type: 'file', date: "26/05/2026" },
+        { id: 106, name: "06_Discord_Advanced_AutoMod.js", content: "const Discord = require('discord.js');\nconst client = new Discord.Client({ intents: [32767] });\nconst EXPLOIT_LINKS_REGEX = /(discord\\.gg\\/|phishing_site_db\\.)/gi;\nclient.on('messageCreate', async (msg) => {\n    if (msg.author.bot) return;\n    if (EXPLOIT_LINKS_REGEX.test(msg.content)) {\n        await msg.delete();\n        const alertEmbed = new Discord.MessageEmbed().setTitle('🚨 MALICIOUS INJECTION BLOCKED').setColor('#FF0000').setDescription(`User ${msg.author.tag} attempted to drop banned payload.`);\n        msg.channel.send({ embeds: [alertEmbed] });\n    }\n});\nclient.login(process.env.BOT_TOKEN_HASH);", type: 'file', date: "02/06/2026" },
+        { id: 107, name: "07_AI_Semantic_Search_Hub.py", content: "# 🧠 NEURAL LAYER EMBEDDING SEARCH PARSER\nfrom transformers import AutoTokenizer, AutoModel\nimport torch\ntokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')\nmodel = AutoModel.from_pretrained('bert-base-uncased')\ndef extract_semantic_vectors(text_node):\n    inputs = tokenizer(text_node, return_tensors='pt', padding=True, truncation=True)\n    with torch.no_grad(): outputs = model(**inputs)\n    return outputs.last_hidden_state.mean(dim=1).numpy()\nprint(\"[AI ENGINE] Vector Semantic Weights Compiled Successfully.\")", type: 'file', date: "10/06/2026" },
+        { id: 108, name: "08_Live_Crypto_WS_Dashboard.vue", content: "<!-- 📊 REALTIME WEBSOCKET SECURE FEED COMPONENT -->\n<template>\n  <div class='ticker-panel'>\n    <h3>Binance Stream Node: {{ currentPrice }} USD</h3>\n    <p :class='statusStyle'>Delta Tracker Node: {{ priceChange }}%</p>\n  </div>\n</template>\n<script>\nexport default {\n  data: () => ({ currentPrice: 0, priceChange: 0, wsWorker: null }),\n  mounted() {\n    this.wsWorker = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker');\n    this.wsWorker.onmessage = (event) => {\n      const metrics = JSON.parse(event.data);\n      this.currentPrice = parseFloat(metrics.c).toFixed(2);\n      this.priceChange = parseFloat(metrics.P).toFixed(2);\n    };\n  }\n}\n<\/script>", type: 'file', date: "15/06/2026" },
+        { id: 109, name: "09_Minecraft_Chunk_Optimizer.java", content: "package net.cyber.optimizer;\nimport org.bukkit.event.EventHandler;\nimport org.bukkit.event.Listener;\nimport org.bukkit.event.world.ChunkLoadEvent;\nimport org.bukkit.entity.Entity;\npublic class ChunkGarbageCollector implements Listener {\n    @EventHandler\n    public void onChunkLoad(ChunkLoadEvent event) {\n        Entity[] activeEntities = event.getChunk().getEntities();\n        if (activeEntities.length > 120) {\n            for (int i = 120; i < activeEntities.length; i++) {\n                if (!(activeEntities[i] instanceof org.bukkit.entity.Player)) { activeEntities[i].remove(); }\n            }\n            System.out.println(\"[OPTIMIZER] Cleared heavy redundant entities in chunk stack.\");\n        }\n    }\n}", type: 'file', date: "20/06/2026" },
+        { id: 110, name: "10_Async_HighSpeed_Scraper.py", content: "# 🌐 HIGH-VELOCITY ASYNC MULTI-THREADING SCRAPER\nimport asyncio\nimport aiohttp\nfrom bs4 import BeautifulSoup\ntarget_nodes = [f\"https://api.secure-data-hub.net/nodes/{i}\" for i in range(1, 50)]\nasync def scrape_node(session, url):\n    async with session.get(url, timeout=5) as response:\n        raw_html = await response.text()\n        soup = BeautifulSoup(raw_html, 'html.parser')\n        return soup.find(\"div\", {\"id\": \"secure_payload_hash\"}).text.strip()\nasync def primary_pipeline():\n    async with aiohttp.ClientSession() as session:\n        worker_tasks = [scrape_node(session, url) for url in target_nodes]\n        all_payloads = await asyncio.gather(*worker_tasks)\n        print(f\"[SCRAPER] Successfully captured {len(all_payloads)} crypt structures.\")\nasyncio.run(primary_pipeline())", type: 'file', date: "01/07/2026" }
+    ];
+
+    // 🔒 SECRET VAULT: 10 ULTRA-ADVANCED PROJECT BLOCKS (FIXED)
+    const defaultSecretVault = [
+        { id: 1, name: "01_Zero_Day_Exploit_Mitigator.sys", type: 'file', parentId: null, content: "[CRITICAL SECURITY AREA: KERNEL DEFENSE SYSTEM]\n#include <linux/kernel.h>\n#include <linux/module.h>\nstatic int __init inject_interceptor_shield(void) {\n    printk(KERN_INFO \"[SHIELD] Rerouting Virtual Memory Pointers...\\n\");\n    disable_untrusted_syscall_execution();\n    return 0;\n}\nstatic void __exit purge_shield(void) { printk(KERN_INFO \"Shield unlinked.\\n\"); }\nmodule_init(inject_interceptor_shield);", date: "10/07/2026" },
+        { id: 2, name: "02_Quantum_AES256_Encrypter.py", type: 'file', parentId: null, content: "# 🌌 POST-QUANTUM CRYPTOGRAPHY SYMMETRIC PIPELINE\nfrom cryptography.hazmat.primitives.ciphers.aead import AESGCM\nimport os\n\ndef encrypt_sensitive_quantum_payload(raw_vault_bytes):\n    # 256-bit high-entropy ephemeral key orchestration\n    secure_quantum_key = AESGCM.generate_key(bit_length=256)\n    aesgcm_engine = AESGCM(secure_quantum_key)\n    nonce_vector = os.urandom(12)\n    \n    encrypted_block = aesgcm_engine.encrypt(nonce_vector, raw_vault_bytes, None)\n    print(\"[CIPHER] AES-GCM Quantum Encryption Cycle Completed Vector Grid.\")\n    return (encrypted_block, secure_quantum_key, nonce_vector)", date: "11/07/2026" },
+        { id: 3, name: "03_Minecraft_Cluster_AutoScaler.sh", type: 'file', parentId: null, content: "#!/bin/bash\n# 🎮 BASH ORCHESTRATION: CLUSTER STACK MINECRAFT MANAGER\nTARGET_CONTAINER=\"mc_hub_node_primary\"\nMAX_LATENCY_THRESHOLD=180\ncheck_metrics() {\n    current_tps=$(docker exec $TARGET_CONTAINER rcon-cli \"tps\" | awk '{print $4}' | sed 's/,//')\n    if (( $(echo \"$current_tps < 16.0\" | bc -l) )); then\n        echo \"[ALERT] Core degradation detected! Spinning up auxiliary node proxy...\"\n        docker run -d --name mc-node-aux-grid -p 25567:25565 -v mc_shared_data:/data minecraft_cluster:v4\n        docker exec velocity_proxy_router \"velocity reload\"\n    fi\n}\nwhile true; do check_metrics; sleep 10; done", date: "12/07/2026" },
+        { id: 4, name: "04_LSTM_Neural_Network_Trader.py", type: 'file', parentId: null, content: "# 📈 MULTI-LAYER LSTM RECURRENT FORECAST TRADING SYSTEM\nimport numpy as np\nfrom keras.models import Sequential\nfrom keras.layers import LSTM, Dense, Dropout\ndef assemble_neural_trading_matrix():\n    network_model = Sequential()\n    network_model.add(LSTM(units=128, return_sequences=True, input_shape=(60, 1)))\n    network_model.add(Dropout(0.3))\n    network_model.add(LSTM(units=64, return_sequences=False))\n    network_model.add(Dropout(0.2))\n    network_model.add(Dense(units=1, activation='linear'))\n    network_model.compile(optimizer='adam', loss='mean_squared_error')\n    print(\"[NEURAL LAYER] Compiled Predictive Backpropagation Graph Mapping.\")\n    return network_model", date: "12/07/2026" },
+        { id: 5, name: "05_Distributed_DDoS_Shield.conf", type: 'file', parentId: null, content: "# 🛡️ HIGH-END LAYER-7 REVERSE PROXY SECURITY ARCHITECTURE\nlimit_req_zone $binary_remote_addr zone=anti_flood_matrix:50m rate=3r/s;\nlimit_conn_zone $binary_remote_addr zone=per_ip_connections:50m;\nserver {\n    listen 443 ssl http2;\n    server_name vault.internal.matrix;\n    location /api/vault/v2/ {\n        limit_req zone=anti_flood_matrix burst=5 nodelay;\n        limit_conn per_ip_connections 2;\n        proxy_pass http://isolated_sandbox_cluster;\n        error_page 503 = @trigger_honey_pot;\n    }\n}", date: "13/07/2026" },
+        { id: 6, name: "06_Miner_Stratum_Proxy_Optimizer.go", type: 'file', parentId: null, content: "package main\nimport ( \"net\"; \"log\"; \"io\" )\nfunc pipeConnections(source net.Conn, target string) {\n    destination, err := net.Dial(\"tcp\", target)\n    if err != nil { return }\n    defer destination.Close()\n    go io.Copy(destination, source)\n    io.Copy(source, destination)\n}\nfunc main() {\n    hub, _ := net.Listen(\"tcp\", \":4444\")\n    log.Println(\"[STRATUM-PROXY] Mining node intercept distribution live on port 4444.\")\n    for { conn, _ := hub.Accept(); go pipeConnections(conn, \"stratum+tcp://btc.pool.binance.com:8888\") }\n}", date: "14/07/2026" },
+        { id: 7, name: "07_Payload_Obfuscation_Morpher.py", type: 'file', parentId: null, content: "# 🦹 ADVANCED POLYMORPHIC MUTATION & SIGNATURE SHIFTER\nimport base64\ndef morph_payload_signature(raw_shellcode_string):\n    dynamic_xor_key = 0xDE\n    morphed_array = []\n    for byte in raw_shellcode_string.encode('utf-8'): morphed_array.append(chr(byte ^ dynamic_xor_key))\n    compiled_payload = \"\".join(morphed_array)\n    b64_obfuscated = base64.b64encode(compiled_payload.encode('utf-8'))\n    return f\"exec(base64.b64decode({b64_obfuscated}))\"", date: "14/07/2026" },
+        { id: 8, name: "08_Deep_Web_OSINT_Crawler.js", type: 'file', parentId: null, content: "const socksAgent = require('socks-proxy-agent');\nconst axios = require('axios');\nconst torAgentInstance = new socksAgent.SocksProxyAgent('socks5h://127.0.0.1:9050');\nasync function scanOnionDirectory() {\n    const response = await axios.get('http://expyuzz5wqqfdgah567onion.onion/api/threats', { httpAgent: torAgentInstance, httpsAgent: torAgentInstance });\n    if(response.status === 200) { console.log(\"[OSINT] Deep Network Vulnerability Stream Captured: \", response.data); }\n}\nscanOnionDirectory();", date: "15/07/2026" },
+        { id: 9, name: "09_Kernel_Memory_Leak_Fixer.c", type: 'file', parentId: null, content: "#include <stdio.h>\n#include <stdlib.h>\nvoid* tracked_kernel_alloc(size_t byte_size, const char* reference_file, int execution_line) {\n    void* allocation_pointer = malloc(byte_size);\n    if (allocation_pointer) { printf(\"[TRACKER] Address Registered: %p Allocated at %s:%d\\n\", allocation_pointer, reference_file, execution_line); }\n    return allocation_pointer;\n}\n#define malloc(size) tracked_kernel_alloc(size, __FILE__, __LINE__)", date: "16/07/2026" },
+        { id: 10, name: "10_Shadow_Mesh_Network_Tunnel.ovpn", type: 'file', parentId: null, content: "client\ndev tun\nproto udp\nremote gateway.matrix.shadow.net 443\nresolv-retry infinite\nnobind\npersist-key\npersist-tun\nremote-cert-tls server\ncipher AES-256-GCM\nauth SHA512\ntls-version-min 1.3\n<tls-crypt>\n-----BEGIN OpenVPN Static key V1-----\n4a5e6f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f\na1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2\n-----END OpenVPN Static key V1-----\n</tls-crypt>", date: "17/07/2026" }
+    ];
+
+    let systemMode = 'secret'; 
+    let currentFolderId = null; 
+    let creationMode = 'file'; 
+    let mineInterval = null;
+
+    let fsDatabase = JSON.parse(localStorage.getItem('cyber_virtual_fs'));
+    if (!fsDatabase || fsDatabase.length <= 1) {
+        fsDatabase = defaultSecretVault;
+        localStorage.setItem('cyber_virtual_fs', JSON.stringify(fsDatabase));
+    }
+
+    window.onload = function() {
+        if (checkBanStatus()) return; 
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('zone') === 'public') { switchToPublicMode(); }
+    }
+
+    function checkBanStatus() {
+        const now = Date.now();
+        const banExpires = localStorage.getItem('cyber_ban_expires');
+        if (banExpires && now < banExpires) { showBanScreen(banExpires); return true; }
+        return false;
+    }
+
+    function showBanScreen(banExpires) {
+        const remainingMs = banExpires - Date.now();
+        if (remainingMs <= 0) {
+            localStorage.removeItem('cyber_ban_expires');
+            localStorage.setItem('cyber_failed_attempts', '0');
+            location.reload();
+            return;
+        }
+        const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        document.getElementById("dynamic-auth-box").innerHTML = `
+            <h2 style="color:var(--danger); letter-spacing: 3px; margin-bottom: 10px;">🚨 ACCESS BANNED 🚨</h2>
+            <p style="font-size:11px; color:#ff4757; margin-bottom: 20px; font-weight:bold;">SECURITY LOCKDOWN: 3 WRONG ATTEMPTS DETECTED</p>
+            <div style="background:#1a0508; border:1px solid var(--danger); padding:20px; border-radius:8px; margin-bottom:20px;">
+                <span style="font-size:11px; color:#aaa; display:block; margin-bottom:5px;">TIME REMAINING:</span>
+                <span style="font-size:26px; color:var(--danger); font-weight:bold; letter-spacing:2px;">${hours}h ${minutes}m</span>
+            </div>
+        `;
+        document.getElementById("auth-layer").style.display = "flex";
+        document.getElementById("os-ui").style.display = "none";
+    }
+
+    function checkAccess() {
+        if (checkBanStatus()) return;
+        if(document.getElementById("pin-field").value === SYSTEM_PIN) {
+            localStorage.setItem('cyber_failed_attempts', '0');
+            document.getElementById("auth-layer").style.display = "none";
+            document.getElementById("os-ui").style.display = "grid";
+            systemMode = 'secret';
+            setupUIMode(); runSystemInit(); initLiveMap(); renderExplorer();
+        } else {
+            let attempts = parseInt(localStorage.getItem('cyber_failed_attempts') || '0') + 1;
+            localStorage.setItem('cyber_failed_attempts', attempts);
+            if(attempts >= 3) {
+                localStorage.setItem('cyber_ban_expires', Date.now() + (24 * 60 * 60 * 1000));
+                checkBanStatus();
+            } else { alert(`ACCESS DENIED! Remaining: ${3 - attempts}`); }
+        }
+    }
+
+    function switchToPublicMode() {
+        if (checkBanStatus()) return;
+        document.getElementById("auth-layer").style.display = "none";
+        document.getElementById("os-ui").style.display = "grid";
+        systemMode = 'public';
+        setupUIMode(); runSystemInit(); initLiveMap(); renderExplorer();
+    }
+
+    function lockSystemAndGoBack() { location.reload(); }
+
+    function generatePublicLink() {
+        const publicUrl = window.location.origin + window.location.pathname + "?zone=public";
+        navigator.clipboard.writeText(publicUrl);
+        alert("Public Link Copied:\n" + publicUrl);
+    }
+
+    function setupUIMode() {
+        const statusBadge = document.getElementById("current-zone-status");
+        const workspaceTitle = document.getElementById("workspace-title");
+        if(systemMode === 'secret') {
+            statusBadge.innerText = "SECRET MATRIX"; statusBadge.className = "zone-badge badge-secret";
+            workspaceTitle.innerText = "📁 INTERNAL SECURE STORAGE ARCHIVE (OFFLINE)";
+            document.getElementById("secret-controls").style.display = "flex";
+            document.getElementById("public-controls").style.display = "none";
+        } else {
+            statusBadge.innerText = "PUBLIC PLACE"; statusBadge.className = "zone-badge badge-public";
+            workspaceTitle.innerText = "🌐 OPEN NETWORK PUBLIC PORTFOLIO";
+            document.getElementById("secret-controls").style.display = "none";
+            document.getElementById("public-controls").style.display = "flex";
+        }
+    }
+
+    function runSystemInit() {
+        setInterval(() => {
+            if (!mineInterval) document.getElementById("cpu-bar").style.width = Math.random()*40 + 10 + "%";
+            document.getElementById("ram-bar").style.width = Math.random()*30 + 20 + "%";
+            document.getElementById("clock").innerText = new Date().toLocaleTimeString();
+        }, 1000);
+    }
+
+    function initLiveMap() {
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.parentElement.clientWidth; canvas.height = 170;
+        setInterval(() => {
+            ctx.fillStyle = '#020205'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath(); ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, 3, 0, 2*Math.PI);
+            ctx.fillStyle = '#ff4757'; ctx.fill();
+        }, 1000);
+    }
+
+    function triggerCreate(type) {
+        if(systemMode === 'public') return;
+        creationMode = type;
+        document.getElementById("notepad-zone").style.display = "flex";
+        document.getElementById("note-content").style.display = (type === 'folder') ? "none" : "block";
+        document.getElementById("save-vault-btn").onclick = saveVirtualElement;
+    }
+
+    function closeNotepad() { document.getElementById("notepad-zone").style.display = "none"; }
+
+    function saveVirtualElement() {
+        const name = document.getElementById("note-title").value.trim();
+        if(!name) return;
+        fsDatabase.push({ id: Date.now(), name: name, type: creationMode, parentId: currentFolderId, content: document.getElementById("note-content").value, date: new Date().toLocaleDateString() });
+        localStorage.setItem('cyber_virtual_fs', JSON.stringify(fsDatabase));
+        closeNotepad(); renderExplorer();
+    }
+
+    function renderExplorer() {
+        const display = document.getElementById("explorer-display"); display.innerHTML = "";
+        if (systemMode === 'public') {
+            document.getElementById("path-monitor").innerText = "Location: Network/Public_Place/Projects";
+            publicProjects.forEach(item => {
+                const div = document.createElement("div"); div.className = "explorer-item";
+                div.innerHTML = `<div class="item-icon">📄</div><div class="item-name">${item.name}</div>`;
+                div.onclick = () => alert(`--- PUBLIC FILE ---\n\n${item.content}`);
+                display.appendChild(div);
+            });
+            return;
+        }
+        updatePathUI();
+        if (currentFolderId !== null) {
+            const back = document.createElement("div"); back.className = "explorer-item"; back.innerHTML = `⬅️ Back`;
+            back.onclick = () => { currentFolderId = fsDatabase.find(i => i.id === currentFolderId).parentId; renderExplorer(); };
+            display.appendChild(back);
+        }
+        fsDatabase.filter(i => i.parentId === currentFolderId).forEach(item => {
+            const div = document.createElement("div"); div.className = "explorer-item";
+            div.innerHTML = `<div class="shred-btn" onclick="shredItem(event, ${item.id})">[SHRED]</div><div class="item-icon">${item.type==='folder'?'📁':'🔒'}</div><div class="item-name">${item.name}</div>`;
+            div.onclick = () => { if(item.type==='folder') { currentFolderId = item.id; renderExplorer(); } else alert(`--- DECRYPTED ---\n\n${item.content}`); };
+            display.appendChild(div);
+        });
+    }
+
+    function updatePathUI() {
+        let activeId = currentFolderId, breadcrumbs = [];
+        while(activeId !== null) { let f = fsDatabase.find(i => i.id === activeId); if(f) { breadcrumbs.unshift(f.name); activeId = f.parentId; } else break; }
+        document.getElementById("path-monitor").innerText = "Location: Root / " + breadcrumbs.join(" / ");
+    }
+
+    function shredItem(e, id) { e.stopPropagation(); fsDatabase = fsDatabase.filter(i => i.id !== id); localStorage.setItem('cyber_virtual_fs', JSON.stringify(fsDatabase)); renderExplorer(); }
+    function clearFullVault() { fsDatabase = defaultSecretVault; localStorage.setItem('cyber_virtual_fs', JSON.stringify(fsDatabase)); currentFolderId = null; renderExplorer(); }
+
+    document.getElementById("cmd").addEventListener("keydown", (e) => {
+        if(e.key === "Enter") {
+            const val = e.target.value.trim().toLowerCase();
+            const term = document.getElementById("term");
+            term.innerHTML += `<div>> ${e.target.value}</div>`;
+            if(val === "crypto-mine") {
+                if(!mineInterval) {
+                    document.getElementById("miner-status").innerText = "MINING";
+                    mineInterval = setInterval(() => { term.innerHTML += "<div style='color:var(--gold)'>[BLOCK FOUND] +0.024 CC</div>"; term.scrollTop = term.scrollHeight; }, 2000);
+                } else { clearInterval(mineInterval); mineInterval = null; document.getElementById("miner-status").innerText = "OFFLINE"; }
+            } else { term.innerHTML += "<div>Operation Executed.</div>"; }
+            e.target.value = ""; term.scrollTop = term.scrollHeight;
+        }
+    });
+</script>
+</body>
+</html>
